@@ -35,3 +35,34 @@ if (!encrypt_string(
     return true;
 }
 
+bool VaultManager::unlock_vault(const std::string& master_password){
+    if (master_password.empty()){
+        return false;
+    }
+
+    std::vector<unsigned char> derived_key;
+
+    if (!derive_key(master_password, salt_, derived_key)){
+
+        return false;
+    }
+
+    std::string decrypted;
+
+    if(!decrypt_string(
+        verification_ciphertext_,
+        verification_nonce_,
+        derived_key,
+        decrypted)){
+            return false;
+        }
+
+        if (decrypted != "VAULT_OK"){
+            return false;
+        }
+
+        current_key_ = derived_key;
+        unlocked_ = true;
+
+        return true;
+}

@@ -1,9 +1,6 @@
-#include <iostream>
-#include <vector>
-#include <sodium.h>
-#include "password_generator.h"
-#include "random_utils.h"
+#include "vault_manager.h"
 #include "crypto_utils.h"
+#include <iostream>
 
 int main() {
     if (!crypto_init()) {
@@ -11,37 +8,27 @@ int main() {
         return 1;
     }
 
-    std::string password = "test_master_password";
+    VaultManager vault;
 
-    std::vector<unsigned char> salt(crypto_pwhash_SALTBYTES);
-    randombytes_buf(salt.data(), salt.size());
-
-    std::vector<unsigned char> key;
-    if (!derive_key(password, salt, key)) {
-        std::cout << "Key derivation failed\n";
+    std::cout << "Creating vault...\n";
+    if (!vault.create_vault("correct_password")) {
+        std::cout << "Vault creation failed\n";
         return 1;
     }
 
-    std::string message = "HELLO_VAULT";
-
-    std::vector<unsigned char> nonce;
-    std::vector<unsigned char> ciphertext;
-
-    if (!encrypt_string(message, key, nonce, ciphertext)) {
-        std::cout << "Encryption failed\n";
-        return 1;
+    std::cout << "Attempting correct unlock...\n";
+    if (vault.unlock_vault("correct_password")) {
+        std::cout << "Correct password accepted\n";
+    } else {
+        std::cout << "Correct password rejected\n";
     }
 
-    std::string decrypted;
-
-    if (!decrypt_string(ciphertext, nonce, key, decrypted)) {
-        std::cout << "Decryption failed\n";
-        return 1;
+    std::cout << "Attempting wrong unlock...\n";
+    if (vault.unlock_vault("wrong_password")) {
+        std::cout << "Wrong password accepted (ERROR)\n";
+    } else {
+        std::cout << "Wrong password rejected (GOOD)\n";
     }
-
-    std::cout << "Original: " << message << "\n";
-    std::cout << "Decrypted: " << decrypted << "\n";
 
     return 0;
 }
-
