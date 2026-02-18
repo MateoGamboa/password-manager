@@ -50,3 +50,48 @@ bool DatabaseManager::initialize(){
     return true;
 
 }
+
+bool DatabaseManager::save_vault_metadata(const VaultMetadata& metadata){
+
+    sqlite3* raw_db = static_cast<sqlite3*>(db_);
+
+    const char* delete_sql = "DELETE FROM vault_metadata";
+
+    if(sqlite3_exec(raw_db, delete_sql, nullptr, nullptr, nullptr) != SQLITE_OK){
+        return false;
+    }
+
+    const char* insert_sql = 
+        "INSERT INTO vault_metadata"
+        "(salt, verification_nonce, verification_ciphertext)"
+        "VALUES (?, ?, ?);";
+
+    sqlite3_stmt* stmt = nullptr;
+
+    if (sqlite3_prepare_v2(raw_db, insert_sql, -1, &stmt, nullptr) != SQLITE_OK){
+        return false;
+    } 
+
+    sqlite3_bind_blob(stmt, 1, 
+        metadata.salt.data(),
+        metadata.salt.size(),
+        SQLITE_STATIC);
+
+    sqlite3_bind_blob(stmt, 2, 
+        metadata.verification_nonce.data(),
+        metadata.verification_nonce.size(),
+        SQLITE_STATIC);
+
+    sqlite3_bind_blob(stmt, 3, 
+        metadata.verification_ciphertext.data(),
+        metadata.verification_ciphertext.size(),
+        SQLITE_STATIC);
+
+    if(sqlite3_step(stmt) != SQLITE_DONE){
+        sqlite3_finalize(stmt);
+        return false;
+    }
+
+    sqlite3_finalize(stmt);
+        return true;
+}
