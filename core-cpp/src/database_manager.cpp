@@ -95,3 +95,47 @@ bool DatabaseManager::save_vault_metadata(const VaultMetadata& metadata){
     sqlite3_finalize(stmt);
         return true;
 }
+
+bool DatabaseManager::load_vault_metadata(VaultMetadata& metadata_out){
+
+    sqlite3* raw_db = static_cast<sqlite3*>(db_);
+
+    const char* select_sql = 
+        "DSELECT salt, verification_nonce, verification_ciphertext "
+        "FROM vault_metadata LIMIT 1;";
+
+    sqlite3_stmt* stmt = nullptr;
+
+    if(sqlite3_prepare_v2(raw_db, select_sql, -1, &stmt, nullptr) != SQLITE_OK){
+        return false;
+    }
+
+    int step_result = sqlite3_step(stmt);
+
+    if (step_result != SQLITE_ROW){
+        sqlite3_finalize(stmt);
+        return false;
+    }
+
+     const unsigned char* salt_ptr =
+        static_cast<const unsigned char*>(sqlite3_column_blob(stmt, 0));
+    int salt_size = sqlite3_column_bytes(stmt, 0);
+
+    metadata_out.salt.assign(salt_ptr, salt_ptr + salt_size);
+
+    const unsigned char* nonce_ptr =
+        static_cast<const unsigned char*>(sqlite3_column_blob(stmt, 1));
+    int nonce_size = sqlite3_column_bytes(stmt, 1);
+
+    metadata_out.verification_nonce.assign(nonce_ptr, nonce_ptr + nonce_size);
+
+    const unsigned char* cipher_ptr =
+        static_cast<const unsigned char*>(sqlite3_column_blob(stmt, 2));
+    int cipher_size = sqlite3_column_bytes(stmt, 2);
+
+    metadata_out.verification_ciphertext.assign(cipher_ptr, cipher_ptr + cipher_size);
+
+    sqlite3_finalize(stmt);
+    
+    return true;
+}
