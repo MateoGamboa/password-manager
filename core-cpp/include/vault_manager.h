@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 
+#include "database_manager.h"
+
 class VaultManager{
     public:
-        VaultManager();
+        VaultManager(DatabaseManager* db);
 
         bool create_vault(const std::string& master_password);
         bool unlock_vault(const std::string& master_password);
@@ -20,6 +22,8 @@ class VaultManager{
         std::vector<unsigned char> current_key_;
 
         bool unlocked_;
+
+        DatabaseManager* db_;
         
 };
 

@@ -2,8 +2,8 @@
 #include "crypto_utils.h"
 #include <sodium.h>
 
-VaultManager::VaultManager()
-    : unlocked_(false)
+VaultManager::VaultManager(DatabaseManager* db)
+    : db_(db), unlocked_(false)
 {    
 }
 
@@ -30,6 +30,15 @@ if (!encrypt_string(
         return false;
     }
 
+    VaultMetadata metadata;
+    metadata.salt = salt_;
+    metadata.verification_nonce = verification_nonce_;
+    metadata.verification_ciphertext = verification_ciphertext_;
+
+    if (!db_ ->save_vault_metadata(metadata)){
+        return false;
+    }
+
     unlocked_ = true;
 
     return true;
@@ -40,10 +49,20 @@ bool VaultManager::unlock_vault(const std::string& master_password){
         return false;
     }
 
+    VaultMetadata metadata;
+
+    if (!db_->load_vault_metadata(metadata)){
+        return false;
+    }
+
+    salt_ = metadata.salt;
+    verification_nonce_ = metadata.verification_nonce;
+    verification_nonce_ = metadata.verification_nonce;
+    verification_ciphertext_ = metadata.verification_ciphertext;
+
     std::vector<unsigned char> derived_key;
 
     if (!derive_key(master_password, salt_, derived_key)){
-
         return false;
     }
 

@@ -1,4 +1,4 @@
-#ifndef DATABAE_MANAGER_H
+#ifndef DATABASE_MANAGER_H
 #define DATABASE_MANAGER_H
 
 #include <string>
