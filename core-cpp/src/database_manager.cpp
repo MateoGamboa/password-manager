@@ -23,6 +23,8 @@ bool DatabaseManager::initialize(){
 
     db_ = raw_db;
 
+    char* error_message = nullptr;
+
     const char* create_table_sql = 
         "CREATE TABLE IF NOT EXISTS vault_metadata ("
         "id INTEGER PRIMARY KEY,"
@@ -30,8 +32,6 @@ bool DatabaseManager::initialize(){
         "verification_nonce BLOB NOT NULL,"
         "verification_ciphertext BLOB NOT NULL"
         ");";
-
-    char* error_message = nullptr;
 
     if(sqlite3_exec(
             static_cast<sqlite3*>(db_),
@@ -47,8 +47,28 @@ bool DatabaseManager::initialize(){
         return false;
     }
 
-    return true;
+    const char* create_entries_sql = 
+        "CREATE TABLE IF NOT EXISTS password_entries ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "service TEXT NOT NULL,"
+        "nonce BLOB NOT NULL,"
+        "ciphertext BLOB NOT NULL"
+        ");";
 
+        if (sqlite3_exec(
+            static_cast<sqlite3*>(db_),
+            create_entries_sql,
+            nullptr,
+            nullptr,
+            &error_message) != SQLITE_OK)
+        {
+            std::cerr << "Failed to ceate password_entries table: "
+                    << error_message << "\n";  
+            sqlite3_free(error_message);
+            return false;
+        }    
+
+        return true;
 }
 
 bool DatabaseManager::save_vault_metadata(const VaultMetadata& metadata){
@@ -62,8 +82,8 @@ bool DatabaseManager::save_vault_metadata(const VaultMetadata& metadata){
     }
 
     const char* insert_sql = 
-        "INSERT INTO vault_metadata"
-        "(salt, verification_nonce, verification_ciphertext)"
+        "INSERT INTO vault_metadata "
+        "(salt, verification_nonce, verification_ciphertext) "
         "VALUES (?, ?, ?);";
 
     sqlite3_stmt* stmt = nullptr;
@@ -101,7 +121,7 @@ bool DatabaseManager::load_vault_metadata(VaultMetadata& metadata_out){
     sqlite3* raw_db = static_cast<sqlite3*>(db_);
 
     const char* select_sql = 
-        "DSELECT salt, verification_nonce, verification_ciphertext "
+        "SELECT salt, verification_nonce, verification_ciphertext "
         "FROM vault_metadata LIMIT 1;";
 
     sqlite3_stmt* stmt = nullptr;
