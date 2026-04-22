@@ -159,3 +159,39 @@ bool DatabaseManager::load_vault_metadata(VaultMetadata& metadata_out){
     
     return true;
 }
+
+bool DatabaseManager::add_password_entry(
+    const std::string& service,
+    const std::string& username,
+    const std::vector<unsigned char>& nonce,
+    const std::vector<unsigned char>& ciphertext
+) {
+    sqlite3* raw_db = static_cast<sqlite3*>(db_);
+
+    const char* insert_sql = 
+        "INSERT INOT password_entries "
+        "(service, username, nonce, ciphertext) "
+        "VALUES (?, ?, ?, ?)";
+
+    sqlite3_stmt* stmt = nullptr;
+
+    if (sqlite3_prepare_v2(raw_db, insert_sql, -1, &stmt, nullptr) != SQLITE_OK){
+        return false;
+    }
+
+    //Bind text
+    sqlite3_bind_text(stmt, 1, service.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, service.c_str(), -1, SQLITE_STATIC);
+
+    //Bind binary
+    sqlite3_bind_blob(stmt, 3, nonce.data(), nonce.size(), SQLITE_STATIC);
+    sqlite3_bind_blob(stmt, 4, ciphertext.data(), ciphertext.size(), SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE){
+        sqlite3_finalize(stmt);
+        return false;
+    }
+
+    sqlite3_finalize(stmt);
+    return true;
+}

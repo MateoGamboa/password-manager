@@ -20,6 +20,13 @@ class DatabaseManager {
         bool save_vault_metadata(const VaultMetadata& metadata_out);
         bool load_vault_metadata(VaultMetadata& metadata_out);
 
+        bool add_password_entry(
+            const std::string& service,
+            const std::string& username,
+            const std::vector<unsigned char>& nonce,
+            const std::vector<unsigned char>& ciphertext
+        );
+
     private:
         std::string db_path_;
         void* db_;

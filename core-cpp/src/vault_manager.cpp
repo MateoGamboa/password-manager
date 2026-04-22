@@ -85,3 +85,22 @@ bool VaultManager::unlock_vault(const std::string& master_password){
 
         return true;
 }
+
+bool VaultManager::add_password(
+    const std::string& service,
+    const std::string& username,
+    const std::string& password
+){
+    if (!unlocked_){
+        return false;
+    }
+
+    std::vector<unsigned char> nonce;
+    std::vector<unsigned char> ciphertext;
+
+    if (!encrypt_string(password, current_key_, nonce, ciphertext)){
+        return false;
+    }
+
+    return db_->add_password_entry(service, username, nonce, ciphertext);
+}

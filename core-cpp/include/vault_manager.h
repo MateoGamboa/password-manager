@@ -15,6 +15,12 @@ class VaultManager{
 
         bool is_unlocked() const;
 
+        bool add_password(
+            const std::string& service,
+            const std::string& username,
+            const std::string& password
+        );
+
     private:
         std::vector<unsigned char> salt_;
         std::vector<unsigned char> verification_nonce_;
