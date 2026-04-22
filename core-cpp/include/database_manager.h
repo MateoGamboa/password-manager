@@ -10,6 +10,14 @@ struct VaultMetadata {
     std::vector<unsigned char> verification_ciphertext;
 };
 
+struct PasswordEntry {
+    int id;
+    std::string service;
+    std::string username;
+    std::vector<unsigned char> nonce;
+    std::vector<unsigned char> ciphertext;
+};
+
 class DatabaseManager {
     public:
         DatabaseManager(const std::string& db_path);
@@ -26,6 +34,11 @@ class DatabaseManager {
             const std::vector<unsigned char>& nonce,
             const std::vector<unsigned char>& ciphertext
         );
+
+        bool get_all_password_entries(std::vector<PasswordEntry>& entries_out);
+
+        bool delete_password_entry(int id);
+
 
     private:
         std::string db_path_;

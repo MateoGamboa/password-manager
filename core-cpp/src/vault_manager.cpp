@@ -104,3 +104,41 @@ bool VaultManager::add_password(
 
     return db_->add_password_entry(service, username, nonce, ciphertext);
 }
+
+bool VaultManager::get_passwords(
+    std::vector<std::tuple<std::string, std::string, std::string>>& output
+){
+    if (!unlocked_){
+        return false;
+    }
+
+    std::vector<PasswordEntry> entries;
+
+    if (!db_->get_all_password_entries(entries)){
+        return false;
+    }
+
+    for (const auto& entry : entries){
+        std::string decrypted;
+
+        if (!decrypt_string(
+            entry.ciphertext,
+            entry.nonce,
+            current_key_,
+            decrypted)){
+                continue; //skip bad entries
+        }
+
+        output.emplace_back(entry.service, entry.username, decrypted);
+    }
+    
+    return true;
+}
+
+bool VaultManager::delete_password(int id){
+    if (!unlocked_){
+        return false;
+    }
+
+    return db_->delete_password_entry(id);
+}

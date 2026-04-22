@@ -21,6 +21,10 @@ class VaultManager{
             const std::string& password
         );
 
+        bool get_passwords(std::vector<std::tuple<std::string, std::string, std::string>>& output);
+
+        bool delete_password(int id);
+
     private:
         std::vector<unsigned char> salt_;
         std::vector<unsigned char> verification_nonce_;

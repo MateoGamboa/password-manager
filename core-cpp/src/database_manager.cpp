@@ -51,6 +51,7 @@ bool DatabaseManager::initialize(){
         "CREATE TABLE IF NOT EXISTS password_entries ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "service TEXT NOT NULL,"
+        "username TEXT NOT NULL,"
         "nonce BLOB NOT NULL,"
         "ciphertext BLOB NOT NULL"
         ");";
@@ -169,25 +170,89 @@ bool DatabaseManager::add_password_entry(
     sqlite3* raw_db = static_cast<sqlite3*>(db_);
 
     const char* insert_sql = 
-        "INSERT INOT password_entries "
+        "INSERT INTO password_entries "
         "(service, username, nonce, ciphertext) "
-        "VALUES (?, ?, ?, ?)";
+        "VALUES (?, ?, ?, ?);";
 
     sqlite3_stmt* stmt = nullptr;
 
     if (sqlite3_prepare_v2(raw_db, insert_sql, -1, &stmt, nullptr) != SQLITE_OK){
+        std::cerr << "Prepare failed: " << sqlite3_errmsg(raw_db) << "\n";
         return false;
     }
 
     //Bind text
     sqlite3_bind_text(stmt, 1, service.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, service.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, username.c_str(), -1, SQLITE_STATIC);
 
     //Bind binary
     sqlite3_bind_blob(stmt, 3, nonce.data(), nonce.size(), SQLITE_STATIC);
     sqlite3_bind_blob(stmt, 4, ciphertext.data(), ciphertext.size(), SQLITE_STATIC);
 
     if (sqlite3_step(stmt) != SQLITE_DONE){
+        std::cerr << "Insert failed: " << sqlite3_errmsg(raw_db) << "\n";
+        sqlite3_finalize(stmt);
+        return false;
+    }
+
+    sqlite3_finalize(stmt);
+    return true;
+}
+
+bool DatabaseManager::get_all_password_entries(std::vector<PasswordEntry>& entries_out){
+    sqlite3* raw_db = static_cast<sqlite3*>(db_);
+
+    const char* select_sql = 
+        "SELECT id, service, username, nonce, ciphertext FROM password_entries;";
+
+    sqlite3_stmt* stmt = nullptr;
+
+    if (sqlite3_prepare_v2(raw_db, select_sql, -1, &stmt, nullptr) != SQLITE_OK){
+        return false;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW){
+        PasswordEntry entry;
+
+        entry.id = sqlite3_column_int(stmt, 0);
+
+        entry.service = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        entry.username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+
+        const unsigned char* nonce_ptr = 
+            static_cast<const unsigned char*>(sqlite3_column_blob(stmt, 3));
+        int nonce_size = sqlite3_column_bytes(stmt, 3);
+        entry.nonce.assign(nonce_ptr, nonce_ptr + nonce_size);
+
+        const unsigned char* cipher_ptr =
+            static_cast<const unsigned char*>(sqlite3_column_blob(stmt, 4));
+        int cipher_size = sqlite3_column_bytes(stmt, 4);
+        entry.ciphertext.assign(cipher_ptr, cipher_ptr + cipher_size);
+
+        entries_out.push_back(entry);
+    }
+
+    sqlite3_finalize(stmt);
+    return true;
+}
+
+bool DatabaseManager::delete_password_entry(int id){
+    sqlite3* raw_db = static_cast<sqlite3*>(db_);
+
+    const char* delete_sql = 
+        "DELETE FROM password_entries WHERE id = ?;";
+
+    sqlite3_stmt* stmt = nullptr;
+
+    if (sqlite3_prepare_v2(raw_db, delete_sql, -1, &stmt, nullptr) != SQLITE_OK){
+        std::cerr << "Prepare failed: " << sqlite3_errmsg(raw_db) << "\n";
+        return false;
+    }
+
+    sqlite3_bind_int(stmt, 1, id);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE){
+        std::cerr << "Delete failed: " << sqlite3_errmsg(raw_db) << "\n";
         sqlite3_finalize(stmt);
         return false;
     }
