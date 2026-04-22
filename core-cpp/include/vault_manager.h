@@ -25,6 +25,8 @@ class VaultManager{
 
         bool delete_password(int id);
 
+        bool update_password(int id, const std::string& new_password);
+
     private:
         std::vector<unsigned char> salt_;
         std::vector<unsigned char> verification_nonce_;

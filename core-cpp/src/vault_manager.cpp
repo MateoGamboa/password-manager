@@ -142,3 +142,18 @@ bool VaultManager::delete_password(int id){
 
     return db_->delete_password_entry(id);
 }
+
+bool VaultManager::update_password(int id, const std::string& new_password){
+    if(!unlocked_){
+        return false;
+    }
+
+    std::vector<unsigned char> nonce;
+    std::vector<unsigned char> ciphertext;
+
+    if (!encrypt_string(new_password, current_key_, nonce, ciphertext)){
+        return false;
+    }
+
+    return db_->update_password_entry(id, nonce, ciphertext);
+}

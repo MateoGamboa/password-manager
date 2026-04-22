@@ -260,3 +260,35 @@ bool DatabaseManager::delete_password_entry(int id){
     sqlite3_finalize(stmt);
     return true;
 }
+
+bool DatabaseManager::update_password_entry(
+    int id,
+    const std::vector<unsigned char>& nonce,
+    const std::vector<unsigned char>& ciphertext
+) {
+    sqlite3* raw_db = static_cast<sqlite3*>(db_);
+
+    const char* update_sql = 
+        "UPDATE password_entries "
+        "SET nonce = ?, ciphertext = ? "
+        "WHERE id = ?;";
+
+    sqlite3_stmt* stmt = nullptr;
+
+    if (sqlite3_prepare_v2(raw_db, update_sql, -1, &stmt, nullptr) !=  SQLITE_OK){
+        std::cerr <<"Prepare failed: " << sqlite3_errmsg(raw_db) << "\n";
+        return false;
+    }
+
+    sqlite3_bind_blob(stmt, 1, nonce.data(), nonce.size(), SQLITE_STATIC);
+    sqlite3_bind_blob(stmt, 2, ciphertext.data(), ciphertext.size(), SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 3, id);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE){
+        std::cerr << "Update failed: " << sqlite3_errmsg(raw_db) << "\n";
+        return false;
+    }
+
+    sqlite3_finalize(stmt);
+    return true;
+}

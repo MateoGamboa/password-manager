@@ -39,6 +39,11 @@ class DatabaseManager {
 
         bool delete_password_entry(int id);
 
+        bool update_password_entry(
+            int id,
+            const std::vector<unsigned char>& nonce,
+            const std::vector<unsigned char>& ciphertext
+        );
 
     private:
         std::string db_path_;
