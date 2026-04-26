@@ -9,13 +9,13 @@ public class Main extends Application {
 
     private boolean showPassword = false;
 
-    @Override
+   @Override
     public void start(Stage stage) {
 
-        // -------- LOGIN UI --------
+        // ================= LOGIN UI =================
         VBox loginRoot = new VBox(15);
         loginRoot.setPadding(new Insets(30));
-        loginRoot.setStyle("-fx-background-color: #0f2f2f;");
+        loginRoot.setStyle("-fx-background-color: #2b3a3a;"); // bluish gray teal
 
         Label title = new Label("Vault Login");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 20px;");
@@ -31,14 +31,15 @@ public class Main extends Application {
 
         passwordField.textProperty().bindBidirectional(visiblePasswordField.textProperty());
 
-        // Toggle button
         Button toggle = new Button("Show");
         toggle.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white;");
 
-        toggle.setOnAction(e -> {
-            showPassword = !showPassword;
+        final boolean[] showPassword = {false};
 
-            if (showPassword) {
+        toggle.setOnAction(e -> {
+            showPassword[0] = !showPassword[0];
+
+            if (showPassword[0]) {
                 passwordField.setVisible(false);
                 passwordField.setManaged(false);
 
@@ -63,30 +64,51 @@ public class Main extends Application {
         error.setStyle("-fx-text-fill: red;");
 
         Button unlock = new Button("Unlock");
-        unlock.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white; -fx-background-radius: 8;");
+        unlock.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white;");
 
         Label forgot = new Label("Forgot password?");
         forgot.setStyle("-fx-text-fill: #80d8ff;");
-        forgot.setOnMouseClicked(e -> {
-            System.out.println("Forgot password clicked");
-        });
 
-        // -------- VAULT UI --------
-        VBox vaultRoot = new VBox(15);
-        vaultRoot.setPadding(new Insets(20));
-        vaultRoot.setStyle("-fx-background-color: #0f2f2f;");
+        // ================= VAULT UI =================
 
-        Label vaultTitle = new Label("Vault");
+        VBox vaultRoot = new VBox(10);
+        vaultRoot.setPadding(new Insets(15));
+        vaultRoot.setStyle("-fx-background-color: #2b3a3a;");
+
+        Label vaultTitle = new Label("Your Vault");
         vaultTitle.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
 
-        Label placeholder = new Label("Passwords will show here");
-        placeholder.setStyle("-fx-text-fill: white;");
+        VBox cardsContainer = new VBox(10);
 
-        vaultRoot.getChildren().addAll(vaultTitle, placeholder);
+        // fake data (for now)
+        for (int i = 0; i < 5; i++) {
+            VBox card = new VBox(5);
+            card.setPadding(new Insets(10));
+            card.setStyle("-fx-background-color: #3c4f4f; -fx-background-radius: 10;");
 
-        Scene vaultScene = new Scene(vaultRoot, 400, 300);
+            Label service = new Label("Service " + (i + 1));
+            service.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
 
-        // -------- LOGIN ACTION --------
+            Label username = new Label("user" + i + "@mail.com");
+            username.setStyle("-fx-text-fill: #cccccc;");
+
+            Label password = new Label("••••••••");
+            password.setStyle("-fx-text-fill: #00bcd4;");
+
+            card.getChildren().addAll(service, username, password);
+
+            cardsContainer.getChildren().add(card);
+        }
+
+        ScrollPane scrollPane = new ScrollPane(cardsContainer);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        vaultRoot.getChildren().addAll(vaultTitle, scrollPane);
+
+        Scene vaultScene = new Scene(vaultRoot, 400, 400);
+
+        // ================= LOGIN ACTION =================
         unlock.setOnAction(e -> {
             String input = passwordField.getText();
 
