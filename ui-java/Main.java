@@ -12,9 +12,10 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
 
-        VBox root = new VBox(15);
-        root.setPadding(new Insets(30));
-        root.setStyle("-fx-background-color: #0f2f2f;");
+        // -------- LOGIN UI --------
+        VBox loginRoot = new VBox(15);
+        loginRoot.setPadding(new Insets(30));
+        loginRoot.setStyle("-fx-background-color: #0f2f2f;");
 
         Label title = new Label("Vault Login");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 20px;");
@@ -28,9 +29,9 @@ public class Main extends Application {
         visiblePasswordField.setManaged(false);
         visiblePasswordField.setVisible(false);
 
-        // keep both fields synced
         passwordField.textProperty().bindBidirectional(visiblePasswordField.textProperty());
 
+        // Toggle button
         Button toggle = new Button("Show");
         toggle.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white;");
 
@@ -56,41 +57,52 @@ public class Main extends Application {
             }
         });
 
-        Button unlock = new Button("Unlock");
-        unlock.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white; -fx-background-radius: 8;");
+        HBox passwordBox = new HBox(10, passwordField, visiblePasswordField, toggle);
 
         Label error = new Label("");
         error.setStyle("-fx-text-fill: red;");
 
+        Button unlock = new Button("Unlock");
+        unlock.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white; -fx-background-radius: 8;");
+
+        Label forgot = new Label("Forgot password?");
+        forgot.setStyle("-fx-text-fill: #80d8ff;");
+        forgot.setOnMouseClicked(e -> {
+            System.out.println("Forgot password clicked");
+        });
+
+        // -------- VAULT UI --------
+        VBox vaultRoot = new VBox(15);
+        vaultRoot.setPadding(new Insets(20));
+        vaultRoot.setStyle("-fx-background-color: #0f2f2f;");
+
+        Label vaultTitle = new Label("Vault");
+        vaultTitle.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+
+        Label placeholder = new Label("Passwords will show here");
+        placeholder.setStyle("-fx-text-fill: white;");
+
+        vaultRoot.getChildren().addAll(vaultTitle, placeholder);
+
+        Scene vaultScene = new Scene(vaultRoot, 400, 300);
+
+        // -------- LOGIN ACTION --------
         unlock.setOnAction(e -> {
             String input = passwordField.getText();
 
             if (input.equals("test")) {
-                error.setText("Unlocked");
-                System.out.println("SUCCESS LOGIN");
+                stage.setScene(vaultScene);
             } else {
                 error.setText("Wrong password");
             }
         });
 
-        Label forgot = new Label("Forgot password?");
-        forgot.setStyle("-fx-text-fill: #80d8ff;");
+        loginRoot.getChildren().addAll(title, passwordBox, unlock, error, forgot);
 
-        forgot.setOnMouseClicked(e -> {
-            System.out.println("Forgot password clicked");
-        });
+        Scene loginScene = new Scene(loginRoot, 350, 250);
 
-        HBox passwordBox = new HBox(10, passwordField, visiblePasswordField, toggle);
-
-        root.getChildren().addAll(title, passwordBox, unlock, error, forgot);
-
-        Scene scene = new Scene(root, 350, 250);
+        stage.setScene(loginScene);
         stage.setTitle("Password Manager");
-        stage.setScene(scene);
         stage.show();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }
