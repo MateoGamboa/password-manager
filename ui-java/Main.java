@@ -20,9 +20,37 @@ class PasswordItem {
     }
 }
 
+class VaultManager {
+
+    private List<PasswordItem> items;
+
+    VaultManager(List<PasswordItem> items) {
+        this.items = items;
+    }
+
+    void add(String service, String username, String password) {
+        items.add(new PasswordItem(service, username, password));
+    }
+
+    void delete(PasswordItem item) {
+        items.remove(item);
+    }
+
+    void update(PasswordItem item, String service, String username, String password) {
+        item.service = service;
+        item.username = username;
+        item.password = password;
+    }
+
+    List<PasswordItem> getAll() {
+        return items;
+    }
+}
+
 public class Main extends Application {
 
     private List<PasswordItem> items = new ArrayList<>();
+    private VaultManager vault;
 
     private VBox cardsContainer = new VBox(10);
     private Scene vaultScene;
@@ -30,12 +58,13 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
 
-        // sample data
-        items.add(new PasswordItem("Gmail", "user1@gmail.com", "••••••"));
-        items.add(new PasswordItem("GitHub", "devUser", "••••••"));
-        items.add(new PasswordItem("Netflix", "mateo@mail.com", "••••••"));
+        vault = new VaultManager(items);
 
-        // ================= LOGIN UI =================
+        // sample data
+        vault.add("Gmail", "user1@gmail.com", "pass1");
+        vault.add("GitHub", "devUser", "pass2");
+
+        // ================= LOGIN =================
         VBox loginRoot = new VBox(15);
         loginRoot.setPadding(new Insets(30));
         loginRoot.setStyle("-fx-background-color: #2b3a3a;");
@@ -49,13 +78,12 @@ public class Main extends Application {
         passwordField.setPromptText("Master password");
         visiblePasswordField.setPromptText("Master password");
 
-        visiblePasswordField.setManaged(false);
         visiblePasswordField.setVisible(false);
+        visiblePasswordField.setManaged(false);
 
         passwordField.textProperty().bindBidirectional(visiblePasswordField.textProperty());
 
         Button toggle = new Button("Show");
-        toggle.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white;");
 
         final boolean[] show = {false};
 
@@ -73,29 +101,23 @@ public class Main extends Application {
 
         HBox passwordBox = new HBox(10, passwordField, visiblePasswordField, toggle);
 
-        Label error = new Label("");
+        Label error = new Label();
         error.setStyle("-fx-text-fill: red;");
 
         Label forgot = new Label("Forgot password?");
         forgot.setStyle("-fx-text-fill: #80d8ff;");
 
-        forgot.setOnMouseClicked(e -> {
-            System.out.println("Forgot password clicked");
-        });
-
         Button unlock = new Button("Unlock");
-        unlock.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white;");
 
-        // ================= VAULT UI =================
+        // ================= VAULT =================
         VBox vaultRoot = new VBox(10);
         vaultRoot.setPadding(new Insets(15));
         vaultRoot.setStyle("-fx-background-color: #2b3a3a;");
 
         Label vaultTitle = new Label("Your Vault");
-        vaultTitle.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        vaultTitle.setStyle("-fx-text-fill: white;");
 
         Button addBtn = new Button("+ Add Password");
-        addBtn.setStyle("-fx-background-color: #00bcd4; -fx-text-fill: white;");
 
         ScrollPane scrollPane = new ScrollPane(cardsContainer);
         scrollPane.setFitToWidth(true);
@@ -106,47 +128,40 @@ public class Main extends Application {
 
         renderCards();
 
-        // ================= ADD PASSWORD =================
+        // ================= ADD =================
         addBtn.setOnAction(e -> {
 
             Stage popup = new Stage();
-            popup.setTitle("Add Password");
 
             VBox box = new VBox(10);
             box.setPadding(new Insets(15));
 
-            TextField serviceField = new TextField();
-            serviceField.setPromptText("Service");
+            TextField s = new TextField();
+            TextField u = new TextField();
+            PasswordField p = new PasswordField();
 
-            TextField userField = new TextField();
-            userField.setPromptText("Username");
-
-            PasswordField passField = new PasswordField();
-            passField.setPromptText("Password");
+            s.setPromptText("Service");
+            u.setPromptText("Username");
+            p.setPromptText("Password");
 
             Button save = new Button("Save");
 
             save.setOnAction(ev -> {
-
-                items.add(new PasswordItem(
-                        serviceField.getText(),
-                        userField.getText(),
-                        passField.getText()
-                ));
-
+                vault.add(s.getText(), u.getText(), p.getText());
                 renderCards();
                 popup.close();
             });
 
-            box.getChildren().addAll(serviceField, userField, passField, save);
+            box.getChildren().addAll(s, u, p, save);
 
             popup.setScene(new Scene(box, 250, 200));
             popup.show();
         });
 
-        // ================= LOGIN ACTION =================
+        // ================= LOGIN =================
         unlock.setOnAction(e -> {
             if (passwordField.getText().equals("test")) {
+                renderCards();
                 stage.setScene(vaultScene);
             } else {
                 error.setText("Wrong password");
@@ -158,29 +173,59 @@ public class Main extends Application {
         Scene loginScene = new Scene(loginRoot, 350, 250);
 
         stage.setScene(loginScene);
-        stage.setTitle("Password Manager");
         stage.show();
     }
 
     void renderCards() {
         cardsContainer.getChildren().clear();
 
-        for (PasswordItem item : items) {
+        for (PasswordItem item : vault.getAll()) {
 
-            VBox card = new VBox(5);
+            VBox card = new VBox(8);
             card.setPadding(new Insets(10));
-            card.setStyle("-fx-background-color: #3c4f4f; -fx-background-radius: 10;");
+            card.setStyle("-fx-background-color: #3c4f4f;");
 
             Label service = new Label(item.service);
-            service.setStyle("-fx-text-fill: white;");
-
             Label username = new Label(item.username);
-            username.setStyle("-fx-text-fill: #cccccc;");
-
             Label password = new Label(item.password);
-            password.setStyle("-fx-text-fill: #00bcd4;");
 
-            card.getChildren().addAll(service, username, password);
+            Button edit = new Button("Edit");
+            Button del = new Button("Delete");
+
+            del.setOnAction(e -> {
+                vault.delete(item);
+                renderCards();
+            });
+
+            edit.setOnAction(e -> {
+
+                Stage popup = new Stage();
+
+                VBox box = new VBox(10);
+                box.setPadding(new Insets(15));
+
+                TextField s = new TextField(item.service);
+                TextField u = new TextField(item.username);
+                PasswordField p = new PasswordField();
+                p.setText(item.password);
+
+                Button save = new Button("Save");
+
+                save.setOnAction(ev -> {
+                    vault.update(item, s.getText(), u.getText(), p.getText());
+                    renderCards();
+                    popup.close();
+                });
+
+                box.getChildren().addAll(s, u, p, save);
+
+                popup.setScene(new Scene(box, 250, 200));
+                popup.show();
+            });
+
+            HBox actions = new HBox(10, edit, del);
+
+            card.getChildren().addAll(service, username, password, actions);
             cardsContainer.getChildren().add(card);
         }
     }
