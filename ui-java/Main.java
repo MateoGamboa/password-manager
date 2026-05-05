@@ -7,49 +7,122 @@ import javafx.stage.Stage;
 
 import java.util.ArrayList;
 import java.util.List;
+// import java.lang.classfile.Label;
+import java.sql.*;
+import java.util.*;
 
 class PasswordItem {
     String service;
     String username;
     String password;
+    int id;
 
-    PasswordItem(String service, String username, String password) {
+    PasswordItem(String service, String username, String password, int id) {
         this.service = service;
         this.username = username;
         this.password = password;
+        this.id = id;
     }
 }
 
 class VaultManager {
 
-    private List<PasswordItem> items;
+    private Connection conn;
 
-    VaultManager(List<PasswordItem> items) {
-        this.items = items;
+    VaultManager() {
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:vault.db");
+
+            Statement stmt = conn.createStatement();
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS passwords (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "service TEXT," +
+                "username TEXT," +
+                "password TEXT)"
+            );
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     void add(String service, String username, String password) {
-        items.add(new PasswordItem(service, username, password));
+        try {
+            System.out.println("INSERTING: " + service);
+
+            PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO passwords(service, username, password) VALUES (?, ?, ?)"
+            );
+            ps.setString(1, service);
+            ps.setString(2, username);
+            ps.setString(3, password);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
-    void delete(PasswordItem item) {
-        items.remove(item);
+    void delete(int id) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM passwords WHERE id=?"
+            );
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    void update(PasswordItem item, String service, String username, String password) {
-        item.service = service;
-        item.username = username;
-        item.password = password;
+    void update(int id, String service, String username, String password) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(
+                "UPDATE passwords SET service=?, username=?, password=? WHERE id=?"
+            );
+            ps.setString(1, service);
+            ps.setString(2, username);
+            ps.setString(3, password);
+            ps.setInt(4, id);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     List<PasswordItem> getAll() {
-        return items;
+        List<PasswordItem> list = new ArrayList<>();
+
+        try {
+            System.out.println("LOADING DATA...");
+
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM passwords");
+
+            while (rs.next()) {
+                System.out.println("FOUND: " + rs.getString("service"));
+
+                list.add(new PasswordItem(
+                        rs.getString("service"),
+                        rs.getString("username"),
+                        rs.getString("password"),
+                        rs.getInt("id")
+                ));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+        
     }
 }
 
 public class Main extends Application {
 
-    private List<PasswordItem> items = new ArrayList<>();
     private VaultManager vault;
 
     private VBox cardsContainer = new VBox(10);
@@ -58,11 +131,11 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
 
-        vault = new VaultManager(items);
+        vault = new VaultManager();
 
         // sample data
-        vault.add("Gmail", "user1@gmail.com", "pass1");
-        vault.add("GitHub", "devUser", "pass2");
+        // vault.add("Gmail", "user1@gmail.com", "pass1");
+        // vault.add("GitHub", "devUser", "pass2");
 
         // ================= LOGIN =================
         VBox loginRoot = new VBox(15);
@@ -193,7 +266,7 @@ public class Main extends Application {
             Button del = new Button("Delete");
 
             del.setOnAction(e -> {
-                vault.delete(item);
+                vault.delete(item.id);
                 renderCards();
             });
 
@@ -212,7 +285,7 @@ public class Main extends Application {
                 Button save = new Button("Save");
 
                 save.setOnAction(ev -> {
-                    vault.update(item, s.getText(), u.getText(), p.getText());
+                    vault.update(item.id, s.getText(), u.getText(), p.getText());
                     renderCards();
                     popup.close();
                 });
