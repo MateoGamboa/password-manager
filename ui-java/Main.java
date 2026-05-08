@@ -11,6 +11,10 @@ import java.util.List;
 import java.sql.*;
 import java.util.*;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
+
 class PasswordItem {
     String service;
     String username;
@@ -28,6 +32,7 @@ class PasswordItem {
 class VaultManager {
 
     private Connection conn;
+    private static final String KEY = "1234567890123456"; // 16 chars = AES key
 
     VaultManager() {
         try {
@@ -46,6 +51,38 @@ class VaultManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+
+    
+    private String encrypt(String data) {
+        try {
+            SecretKeySpec key = new SecretKeySpec(KEY.getBytes(), "AES");
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+
+            byte[] encrypted = cipher.doFinal(data.getBytes());
+            return Base64.getEncoder().encodeToString(encrypted);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private String decrypt(String data) {
+        try {
+            SecretKeySpec key = new SecretKeySpec(KEY.getBytes(), "AES");
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, key);
+
+            byte[] decoded = Base64.getDecoder().decode(data);
+            return new String(cipher.doFinal(decoded));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     void add(String service, String username, String password) {
@@ -57,7 +94,7 @@ class VaultManager {
             );
             ps.setString(1, service);
             ps.setString(2, username);
-            ps.setString(3, password);
+            ps.setString(3, encrypt(password));
             ps.executeUpdate();
         } catch (Exception e) {
             e.printStackTrace();
@@ -84,7 +121,7 @@ class VaultManager {
             );
             ps.setString(1, service);
             ps.setString(2, username);
-            ps.setString(3, password);
+            ps.setString(3, encrypt(password));
             ps.setInt(4, id);
             ps.executeUpdate();
         } catch (Exception e) {
@@ -107,7 +144,7 @@ class VaultManager {
                 list.add(new PasswordItem(
                         rs.getString("service"),
                         rs.getString("username"),
-                        rs.getString("password"),
+                        decrypt(rs.getString("password")),
                         rs.getInt("id")
                 ));
             }
