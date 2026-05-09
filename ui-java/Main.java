@@ -7,13 +7,15 @@ import javafx.stage.Stage;
 
 import java.util.ArrayList;
 import java.util.List;
-// import java.lang.classfile.Label;
 import java.sql.*;
 import java.util.*;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 
 class PasswordItem {
     String service;
@@ -33,6 +35,7 @@ class VaultManager {
 
     private Connection conn;
     private static final String KEY = "1234567890123456"; // 16 chars = AES key
+    private String currentKey;
 
     VaultManager() {
         try {
@@ -48,16 +51,93 @@ class VaultManager {
                 "password TEXT)"
             );
 
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS master (" +
+                "password_hash TEXT)"
+            );
+
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
+    private String hash(String input) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashed = md.digest(input.getBytes());
+
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashed) {
+                sb.append(String.format("%02x", b));
+            }
+
+            return sb.toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    boolean hasMasterPassword() {
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM master");
+            return rs.next();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    void setMasterPassword(String password) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO master(password_hash) VALUES (?)"
+            );
+            ps.setString(1, hash(password));
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    boolean verifyMasterPassword(String input) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(
+                "SELECT password_hash FROM master"
+            );
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                String stored = rs.getString("password_hash");
+                return stored.equals(hash(input));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    void setKey(String password) {
+        this.currentKey = password;
+    }
+
+    private String fixKey(String key) {
+        if (key.length() >= 16) return key.substring(0, 16);
+
+        StringBuilder sb = new StringBuilder(key);
+        while (sb.length() < 16) {
+            sb.append("0");
+        }
+        return sb.toString();
+    }
     
     private String encrypt(String data) {
         try {
-            SecretKeySpec key = new SecretKeySpec(KEY.getBytes(), "AES");
+            SecretKeySpec key = new SecretKeySpec(fixKey(currentKey).getBytes(), "AES");
             Cipher cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.ENCRYPT_MODE, key);
 
@@ -72,7 +152,7 @@ class VaultManager {
 
     private String decrypt(String data) {
         try {
-            SecretKeySpec key = new SecretKeySpec(KEY.getBytes(), "AES");
+            SecretKeySpec key = new SecretKeySpec(fixKey(currentKey).getBytes(), "AES");
             Cipher cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.DECRYPT_MODE, key);
 
@@ -236,8 +316,6 @@ public class Main extends Application {
 
         vaultScene = new Scene(vaultRoot, 400, 400);
 
-        renderCards();
-
         // ================= ADD =================
         addBtn.setOnAction(e -> {
 
@@ -270,9 +348,20 @@ public class Main extends Application {
 
         // ================= LOGIN =================
         unlock.setOnAction(e -> {
-            if (passwordField.getText().equals("test")) {
+
+            String input = passwordField.getText();
+
+            if (!vault.hasMasterPassword()) {
+                vault.setMasterPassword(input);
+                vault.setKey(input);
                 renderCards();
                 stage.setScene(vaultScene);
+
+            } else if (vault.verifyMasterPassword(input)) {
+                vault.setKey(input);
+                renderCards();
+                stage.setScene(vaultScene);
+
             } else {
                 error.setText("Wrong password");
             }
@@ -301,6 +390,7 @@ public class Main extends Application {
 
             Button edit = new Button("Edit");
             Button del = new Button("Delete");
+            Button copy = new Button("Copy");
 
             del.setOnAction(e -> {
                 vault.delete(item.id);
@@ -333,7 +423,19 @@ public class Main extends Application {
                 popup.show();
             });
 
-            HBox actions = new HBox(10, edit, del);
+            copy.setOnAction(e -> {
+
+                Clipboard clipboard = Clipboard.getSystemClipboard();
+                ClipboardContent content = new ClipboardContent();
+                
+                content.putString(item.password);
+
+                clipboard.setContent(content);
+
+                System.out.println("Password copied");
+            });
+
+            HBox actions = new HBox(10, edit, del, copy);
 
             card.getChildren().addAll(service, username, password, actions);
             cardsContainer.getChildren().add(card);
