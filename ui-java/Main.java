@@ -244,6 +244,7 @@ public class Main extends Application {
 
     private VBox cardsContainer = new VBox(10);
     private Scene vaultScene;
+    private TextField searchField;
 
     @Override
     public void start(Stage stage) {
@@ -309,10 +310,16 @@ public class Main extends Application {
 
         Button addBtn = new Button("+ Add Password");
 
+        searchField = new TextField();
+        searchField.setPromptText("Search passwords...");
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            renderCards(newVal);
+        });
+
         ScrollPane scrollPane = new ScrollPane(cardsContainer);
         scrollPane.setFitToWidth(true);
 
-        vaultRoot.getChildren().addAll(vaultTitle, addBtn, scrollPane);
+        vaultRoot.getChildren().addAll(vaultTitle, searchField, addBtn, scrollPane);
 
         vaultScene = new Scene(vaultRoot, 400, 400);
 
@@ -336,7 +343,7 @@ public class Main extends Application {
 
             save.setOnAction(ev -> {
                 vault.add(s.getText(), u.getText(), p.getText());
-                renderCards();
+                renderCards(searchField.getText());
                 popup.close();
             });
 
@@ -354,12 +361,12 @@ public class Main extends Application {
             if (!vault.hasMasterPassword()) {
                 vault.setMasterPassword(input);
                 vault.setKey(input);
-                renderCards();
+                renderCards(searchField.getText());
                 stage.setScene(vaultScene);
 
             } else if (vault.verifyMasterPassword(input)) {
                 vault.setKey(input);
-                renderCards();
+                renderCards(searchField.getText());
                 stage.setScene(vaultScene);
 
             } else {
@@ -375,10 +382,15 @@ public class Main extends Application {
         stage.show();
     }
 
-    void renderCards() {
+    void renderCards(String filter) {
         cardsContainer.getChildren().clear();
 
         for (PasswordItem item : vault.getAll()) {
+
+            if (!item.service.toLowerCase().contains(filter.toLowerCase())
+                    && !item.username.toLowerCase().contains(filter.toLowerCase())) {
+                continue;
+            }
 
             VBox card = new VBox(8);
             card.setPadding(new Insets(10));
@@ -394,7 +406,7 @@ public class Main extends Application {
 
             del.setOnAction(e -> {
                 vault.delete(item.id);
-                renderCards();
+                renderCards(searchField.getText());
             });
 
             edit.setOnAction(e -> {
@@ -413,7 +425,7 @@ public class Main extends Application {
 
                 save.setOnAction(ev -> {
                     vault.update(item.id, s.getText(), u.getText(), p.getText());
-                    renderCards();
+                    renderCards(searchField.getText());
                     popup.close();
                 });
 
