@@ -3,6 +3,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.*;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+
 import java.util.Base64;
 
 import javafx.scene.input.Clipboard;
@@ -256,29 +258,87 @@ public class Main extends Application {
         // vault.add("GitHub", "devUser", "pass2");
 
         // ================= LOGIN =================
-        VBox loginRoot = new VBox(15);
-        loginRoot.setPadding(new Insets(30));
-        loginRoot.setStyle("-fx-background-color: #2b3a3a;");
+        VBox loginRoot = new VBox();
+        loginRoot.setAlignment(javafx.geometry.Pos.CENTER);
+        loginRoot.setStyle("-fx-background-color: #30444a;"); 
 
-        Label title = new Label("Vault Login");
-        title.setStyle("-fx-text-fill: white; -fx-font-size: 20px;");
+        VBox loginCard = new VBox(20);
+        loginCard.setAlignment(javafx.geometry.Pos.CENTER);
+        loginCard.setPadding(new Insets(40));
+        loginCard.setPrefWidth(380);
 
+        loginCard.setStyle(
+            "-fx-background-color: #3a4f55;" +
+            "-fx-background-radius: 18;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 18, 0.2, 0, 4);"
+        );
+
+        // ===== LOGO PLACEHOLDER =====
+        Region logoPlaceholder = new Region();
+        logoPlaceholder.setPrefSize(70, 70);
+
+        logoPlaceholder.setStyle(
+            "-fx-background-color: #4c6368;" +
+            "-fx-background-radius: 35;"
+        );
+
+        // ===== TITLE =====
+        Label title = new Label("Vault");
+        title.setStyle(
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 26px;" +
+            "-fx-font-weight: bold;"
+        );
+
+        Label subtitle = new Label("Secure Password Manager");
+
+        subtitle.setStyle(
+            "-fx-text-fill: #b0bec5;" +
+            "-fx-font-size: 13px;"
+        );
+
+        // ===== PASSWORD FIELD =====
         PasswordField passwordField = new PasswordField();
         TextField visiblePasswordField = new TextField();
 
-        passwordField.setPromptText("Master password");
-        visiblePasswordField.setPromptText("Master password");
+        passwordField.setPromptText("Master Password");
+        visiblePasswordField.setPromptText("Master Password");
+
+        passwordField.setPrefHeight(42);
+        visiblePasswordField.setPrefHeight(42);
+
+        passwordField.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-text-fill: #1e1e1e;" +
+            "-fx-prompt-text-fill: #7d8b8f;"
+        );
+
+        visiblePasswordField.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-text-fill: #1e1e1e;" +
+            "-fx-prompt-text-fill: #7d8b8f;"
+        );
 
         visiblePasswordField.setVisible(false);
         visiblePasswordField.setManaged(false);
 
-        passwordField.textProperty().bindBidirectional(visiblePasswordField.textProperty());
+        passwordField.textProperty().bindBidirectional(
+            visiblePasswordField.textProperty()
+        );
 
-        Button toggle = new Button("Show");
+        // ===== SHOW BUTTON =====
+        Button toggle = new Button("👁");
+
+        toggle.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-text-fill: #9fb0b5;" +
+            "-fx-font-size: 14px;"
+        );
 
         final boolean[] show = {false};
 
         toggle.setOnAction(e -> {
+
             show[0] = !show[0];
 
             passwordField.setVisible(!show[0]);
@@ -287,98 +347,91 @@ public class Main extends Application {
             visiblePasswordField.setVisible(show[0]);
             visiblePasswordField.setManaged(show[0]);
 
-            toggle.setText(show[0] ? "Hide" : "Show");
+            toggle.setText(show[0] ? "✖" : "👁");
         });
 
-        HBox passwordBox = new HBox(10, passwordField, visiblePasswordField, toggle);
+        // ===== PASSWORD CONTAINER =====
+        StackPane fieldStack = new StackPane(passwordField, visiblePasswordField);
 
+        BorderPane passwordContainer = new BorderPane();
+        passwordContainer.setCenter(fieldStack);
+        passwordContainer.setRight(toggle);
+
+        passwordContainer.setMaxWidth(260);
+        passwordContainer.setStyle(
+            "-fx-background-color: #f2f4f5;" +
+            "-fx-background-radius: 12;" +
+            "-fx-padding: 0 10 0 0;"
+        );
+
+        // ===== ERROR =====
         Label error = new Label();
-        error.setStyle("-fx-text-fill: red;");
 
-        Label forgot = new Label("Forgot password?");
-        forgot.setStyle("-fx-text-fill: #80d8ff;");
+        error.setStyle(
+            "-fx-text-fill: #ff7b7b;"
+        );
 
+        // ===== UNLOCK BUTTON =====
         Button unlock = new Button("Unlock");
 
-        // ================= VAULT =================
-        VBox vaultRoot = new VBox(10);
-        vaultRoot.setPadding(new Insets(15));
-        vaultRoot.setStyle("-fx-background-color: #2b3a3a;");
+        unlock.setPrefWidth(180);
+        unlock.setPrefHeight(42);
 
-        Label vaultTitle = new Label("Your Vault");
-        vaultTitle.setStyle("-fx-text-fill: white;");
+        unlock.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-border-color: #67d5ff;" +
+            "-fx-border-radius: 12;" +
+            "-fx-background-radius: 12;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;"
+        );
 
-        Button addBtn = new Button("+ Add Password");
+        unlock.setOnMouseEntered(e ->
+            unlock.setStyle(
+                "-fx-background-color: #67d5ff;" +
+                "-fx-border-color: #67d5ff;" +
+                "-fx-border-radius: 12;" +
+                "-fx-background-radius: 12;" +
+                "-fx-text-fill: #20343a;" +
+                "-fx-font-size: 14px;"
+            )
+        );
 
-        searchField = new TextField();
-        searchField.setPromptText("Search passwords...");
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            renderCards(newVal);
-        });
+        unlock.setOnMouseExited(e ->
+            unlock.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-border-color: #67d5ff;" +
+                "-fx-border-radius: 12;" +
+                "-fx-background-radius: 12;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 14px;"
+            )
+        );
 
-        ScrollPane scrollPane = new ScrollPane(cardsContainer);
-        scrollPane.setFitToWidth(true);
+        // ===== FORGOT PASSWORD =====
+        Label forgot = new Label("Forgot Password?");
 
-        vaultRoot.getChildren().addAll(vaultTitle, searchField, addBtn, scrollPane);
+        forgot.setStyle(
+            "-fx-text-fill: #9fb0b5;" +
+            "-fx-font-size: 12px;"
+        );
 
-        vaultScene = new Scene(vaultRoot, 400, 400);
+        // ===== ADD TO CARD =====
+        loginCard.getChildren().addAll(
+            logoPlaceholder,
+            title,
+            subtitle,
+            passwordContainer,
+            unlock,
+            error,
+            forgot
+        );
 
-        // ================= ADD =================
-        addBtn.setOnAction(e -> {
-
-            Stage popup = new Stage();
-
-            VBox box = new VBox(10);
-            box.setPadding(new Insets(15));
-
-            TextField s = new TextField();
-            TextField u = new TextField();
-            PasswordField p = new PasswordField();
-
-            s.setPromptText("Service");
-            u.setPromptText("Username");
-            p.setPromptText("Password");
-
-            Button save = new Button("Save");
-
-            save.setOnAction(ev -> {
-                vault.add(s.getText(), u.getText(), p.getText());
-                renderCards(searchField.getText());
-                popup.close();
-            });
-
-            box.getChildren().addAll(s, u, p, save);
-
-            popup.setScene(new Scene(box, 250, 200));
-            popup.show();
-        });
-
-        // ================= LOGIN =================
-        unlock.setOnAction(e -> {
-
-            String input = passwordField.getText();
-
-            if (!vault.hasMasterPassword()) {
-                vault.setMasterPassword(input);
-                vault.setKey(input);
-                renderCards(searchField.getText());
-                stage.setScene(vaultScene);
-
-            } else if (vault.verifyMasterPassword(input)) {
-                vault.setKey(input);
-                renderCards(searchField.getText());
-                stage.setScene(vaultScene);
-
-            } else {
-                error.setText("Wrong password");
-            }
-        });
-
-        loginRoot.getChildren().addAll(title, passwordBox, unlock, error, forgot);
-
-        Scene loginScene = new Scene(loginRoot, 350, 250);
+        loginRoot.getChildren().add(loginCard);
+        Scene loginScene = new Scene(loginRoot, 500, 600);
 
         stage.setScene(loginScene);
+        stage.setTitle("Password Manager");
         stage.show();
     }
 
