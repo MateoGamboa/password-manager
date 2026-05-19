@@ -3,7 +3,6 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
@@ -408,6 +407,33 @@ public class Main extends Application {
             )
         );
 
+        // ===== UNLOCK ACTION =====
+        unlock.setOnAction(e -> {
+
+            String input = passwordField.getText();
+
+            if (!vault.hasMasterPassword()) {
+
+                vault.setMasterPassword(input);
+                vault.setKey(input);
+
+                renderCards("");
+
+                stage.setScene(vaultScene);
+
+            } else if (vault.verifyMasterPassword(input)) {
+
+                vault.setKey(input);
+
+                renderCards("");
+
+                stage.setScene(vaultScene);
+
+            } else {
+                error.setText("Wrong password");
+            }
+        });
+
         // ===== FORGOT PASSWORD =====
         Label forgot = new Label("Forgot Password?");
 
@@ -415,6 +441,137 @@ public class Main extends Application {
             "-fx-text-fill: #9fb0b5;" +
             "-fx-font-size: 12px;"
         );
+
+        // ================= VAULT UI =================
+
+        VBox vaultRoot = new VBox(10);
+        vaultRoot.setPadding(new Insets(15));
+        vaultRoot.setStyle("-fx-background-color: #30444a;");
+
+        // ===== TITLE =====
+        Label vaultTitle = new Label("Your Vault");
+
+        vaultTitle.setStyle(
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 22px;" +
+            "-fx-font-weight: bold;"
+        );
+
+        // ===== SEARCH =====
+        searchField = new TextField();
+        searchField.setPromptText("Search passwords...");
+
+        searchField.setStyle(
+            "-fx-background-radius: 12;" +
+            "-fx-background-color: #f2f4f5;" +
+            "-fx-prompt-text-fill: #7d8b8f;" +
+            "-fx-text-fill: #1e1e1e;"
+        );
+
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            renderCards(newVal);
+        });
+
+        // ===== ADD BUTTON =====
+        Button addBtn = new Button("+ Add Password");
+
+        addBtn.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-border-color: #67d5ff;" +
+            "-fx-border-radius: 12;" +
+            "-fx-background-radius: 12;" +
+            "-fx-text-fill: white;"
+        );
+
+        // ===== PASSWORD LIST =====
+        ScrollPane scrollPane = new ScrollPane(cardsContainer);
+
+        scrollPane.setFitToWidth(true);
+
+        scrollPane.setStyle(
+            "-fx-background: transparent;" +
+            "-fx-background-color: transparent;"
+        );
+
+        // ===== ADD PASSWORD ACTION =====
+        addBtn.setOnAction(e -> {
+
+            Stage popup = new Stage();
+
+            VBox box = new VBox(10);
+            box.setPadding(new Insets(15));
+
+            TextField serviceField = new TextField();
+            serviceField.setPromptText("Service");
+
+            TextField userField = new TextField();
+            userField.setPromptText("Username");
+
+            PasswordField passField = new PasswordField();
+            passField.setPromptText("Password");
+
+            Button save = new Button("Save");
+
+            save.setOnAction(ev -> {
+
+                vault.add(
+                    serviceField.getText(),
+                    userField.getText(),
+                    passField.getText()
+                );
+
+                renderCards(searchField.getText());
+
+                popup.close();
+            });
+
+            box.getChildren().addAll(
+                serviceField,
+                userField,
+                passField,
+                save
+            );
+
+            popup.setScene(new Scene(box, 250, 200));
+            popup.show();
+        });
+
+        // ===== BUILD VAULT =====
+        vaultRoot.getChildren().addAll(
+            vaultTitle,
+            searchField,
+            addBtn,
+            scrollPane
+        );
+
+        vaultScene = new Scene(vaultRoot, 700, 500);
+
+        // ===== LOGIN ACTION =====
+        unlock.setOnAction(e -> {
+
+            String input = passwordField.getText();
+
+            if (!vault.hasMasterPassword()) {
+
+                vault.setMasterPassword(input);
+                vault.setKey(input);
+
+                renderCards("");
+
+                stage.setScene(vaultScene);
+
+            } else if (vault.verifyMasterPassword(input)) {
+
+                vault.setKey(input);
+
+                renderCards("");
+
+                stage.setScene(vaultScene);
+
+            } else {
+                error.setText("Wrong password");
+            }
+        });
 
         // ===== ADD TO CARD =====
         loginCard.getChildren().addAll(
