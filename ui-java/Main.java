@@ -18,6 +18,10 @@ import java.util.Base64;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.geometry.Pos;
+
 class PasswordItem {
     String service;
     String username;
@@ -272,28 +276,39 @@ public class Main extends Application {
             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 18, 0.2, 0, 4);"
         );
 
-        // ===== LOGO PLACEHOLDER =====
-        Region logoPlaceholder = new Region();
-        logoPlaceholder.setPrefSize(70, 70);
-
-        logoPlaceholder.setStyle(
-            "-fx-background-color: #4c6368;" +
-            "-fx-background-radius: 35;"
+        // ===== LOGO =====
+        Circle outer = new Circle(32);
+        outer.setStyle(
+            "-fx-fill: transparent;" +
+            "-fx-stroke: #67d5ff;" +
+            "-fx-stroke-width: 3;"
         );
 
+        Circle inner = new Circle(6);
+        inner.setStyle(
+            "-fx-fill: #67d5ff;"
+        );
+
+        Line divider = new Line(0, -18, 0, 18);
+        divider.setStyle(
+            "-fx-stroke: #67d5ff;" +
+            "-fx-stroke-width: 3;"
+        );
+
+        StackPane logo = new StackPane(
+            outer,
+            divider,
+            inner
+        );
+
+        logo.setPrefSize(80, 80);
+
         // ===== TITLE =====
-        Label title = new Label("Vault");
+        Label title = new Label("Password Manager");
         title.setStyle(
             "-fx-text-fill: white;" +
             "-fx-font-size: 26px;" +
             "-fx-font-weight: bold;"
-        );
-
-        Label subtitle = new Label("Secure Password Manager");
-
-        subtitle.setStyle(
-            "-fx-text-fill: #b0bec5;" +
-            "-fx-font-size: 13px;"
         );
 
         // ===== PASSWORD FIELD =====
@@ -574,14 +589,25 @@ public class Main extends Application {
         });
 
         // ===== ADD TO CARD =====
+        HBox bottomRow = new HBox();
+        bottomRow.setAlignment(Pos.CENTER);
+        bottomRow.setPrefWidth(260);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        bottomRow.getChildren().addAll(
+            forgot,
+            spacer,
+            unlock
+        );
+
         loginCard.getChildren().addAll(
-            logoPlaceholder,
+            logo,
             title,
-            subtitle,
             passwordContainer,
-            unlock,
-            error,
-            forgot
+            bottomRow,
+            error
         );
 
         loginRoot.getChildren().add(loginCard);
