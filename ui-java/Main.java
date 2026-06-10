@@ -4,11 +4,11 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.sql.*;
 import java.util.*;
+
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -21,6 +21,8 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.geometry.Pos;
+
+import javafx.scene.layout.GridPane;
 
 class PasswordItem {
     String service;
@@ -247,7 +249,7 @@ public class Main extends Application {
 
     private VaultManager vault;
 
-    private VBox cardsContainer = new VBox(10);
+    private GridPane cardsContainer = new GridPane();
     private Scene vaultScene;
     private TextField searchField;
 
@@ -255,6 +257,9 @@ public class Main extends Application {
     public void start(Stage stage) {
 
         vault = new VaultManager();
+
+        cardsContainer.setHgap(15);
+        cardsContainer.setVgap(15);
 
         // sample data
         // vault.add("Gmail", "user1@gmail.com", "pass1");
@@ -634,7 +639,7 @@ public class Main extends Application {
 
             Label service = new Label(item.service);
             Label username = new Label(item.username);
-            Label password = new Label(item.password);
+            Label password = new Label("••••••••••");
 
             Button edit = new Button("Edit");
             Button del = new Button("Delete");
@@ -686,7 +691,12 @@ public class Main extends Application {
             HBox actions = new HBox(10, edit, del, copy);
 
             card.getChildren().addAll(service, username, password, actions);
-            cardsContainer.getChildren().add(card);
+            int index = cardsContainer.getChildren().size();
+
+            int col = index % 3;
+            int row = index / 3;
+
+            cardsContainer.add(card, col, row);
         }
     }
 }
