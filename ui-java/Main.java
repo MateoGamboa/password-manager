@@ -13,6 +13,7 @@ import java.util.*;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
+
 import java.util.Base64;
 
 import javafx.scene.input.Clipboard;
@@ -634,16 +635,101 @@ public class Main extends Application {
             }
 
             VBox card = new VBox(8);
+            card.setPrefWidth(250);
+            card.setMinHeight(160);
             card.setPadding(new Insets(10));
-            card.setStyle("-fx-background-color: #3c4f4f;");
+            card.setStyle(
+                "-fx-background-color: #3f545a;" +
+                "-fx-background-radius: 18;" +
+                "-fx-padding: 15;"
+            );
 
             Label service = new Label(item.service);
-            Label username = new Label(item.username);
-            Label password = new Label("••••••••••");
+            service.setStyle(
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 18px;" +
+                "-fx-font-weight: bold;"
+            );
 
+            Label username = new Label(item.username);
+            username.setStyle(
+                "-fx-text-fill: #b0bec5;" +
+                "-fx-font-size: 13px;"
+            );
+
+            Label password = new Label("••••••••••");
+            password.setStyle("-fx-text-fill: #67d5ff;" + "-fx-font-size: 14px;");
+            
             Button edit = new Button("Edit");
             Button del = new Button("Delete");
-            Button copy = new Button("Copy");
+            Button copy = new Button("📋");
+            Button reveal = new Button("👁");
+
+            reveal.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-text-fill: #b0bec5;"
+            );
+
+            copy.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-text-fill: #b0bec5;"
+            );
+
+            edit.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-border-color: #67d5ff;" +
+                "-fx-border-radius: 10;" +
+                "-fx-background-radius: 10;" +
+                "-fx-text-fill: white;"
+            );
+
+            del.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-border-color: #67d5ff;" +
+                "-fx-border-radius: 10;" +
+                "-fx-background-radius: 10;" +
+                "-fx-text-fill: white;"
+            );
+
+            edit.setOnMouseEntered(e ->
+                edit.setStyle(
+                    "-fx-background-color: #67d5ff;" +
+                    "-fx-border-color: #67d5ff;" +
+                    "-fx-border-radius: 10;" +
+                    "-fx-background-radius: 10;" +
+                    "-fx-text-fill: #20343a;"
+                )
+            );
+
+            edit.setOnMouseExited(e ->
+                edit.setStyle(
+                    "-fx-background-color: transparent;" +
+                    "-fx-border-color: #67d5ff;" +
+                    "-fx-border-radius: 10;" +
+                    "-fx-background-radius: 10;" +
+                    "-fx-text-fill: white;"
+                )
+            );
+
+            del.setOnMouseEntered(e ->
+                del.setStyle(
+                    "-fx-background-color: #ff4d4d;" +
+                    "-fx-border-color: #ff4d4d;" +
+                    "-fx-border-radius: 10;" +
+                    "-fx-background-radius: 10;" +
+                    "-fx-text-fill: white;"
+                )
+            );
+
+            del.setOnMouseExited(e ->
+                del.setStyle(
+                    "-fx-background-color: transparent;" +
+                    "-fx-border-color: #67d5ff;" +
+                    "-fx-border-radius: 10;" +
+                    "-fx-background-radius: 10;" +
+                    "-fx-text-fill: white;"
+                )
+            );
 
             del.setOnAction(e -> {
                 vault.delete(item.id);
@@ -688,9 +774,39 @@ public class Main extends Application {
                 System.out.println("Password copied");
             });
 
-            HBox actions = new HBox(10, edit, del, copy);
+            final boolean[] visible = {false};
 
-            card.getChildren().addAll(service, username, password, actions);
+            reveal.setOnAction(e -> {
+
+                visible[0] = !visible[0];
+
+                if (visible[0]) {
+                    password.setText(item.password);
+                } else {
+                    password.setText("••••••••••");
+                }
+            });
+
+            HBox passwordRow = new HBox(10, password, reveal, copy);
+            HBox actions = new HBox(10, edit, del);
+
+            Region iconPlaceholder = new Region();
+
+            iconPlaceholder.setPrefSize(36, 36);
+
+            iconPlaceholder.setStyle(
+                "-fx-background-color: #556b70;" +
+                "-fx-background-radius: 18;"
+            );
+
+            HBox header = new HBox(10, iconPlaceholder, service);
+
+            card.getChildren().addAll(
+                header,
+                username,
+                passwordRow,
+                actions
+            );
             int index = cardsContainer.getChildren().size();
 
             int col = index % 3;
