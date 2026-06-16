@@ -13,7 +13,6 @@ import java.util.*;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
-
 import java.util.Base64;
 
 import javafx.scene.input.Clipboard;
@@ -24,6 +23,10 @@ import javafx.scene.shape.Line;
 import javafx.geometry.Pos;
 
 import javafx.scene.layout.GridPane;
+
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import java.io.File;
 
 class PasswordItem {
     String service;
@@ -644,6 +647,30 @@ public class Main extends Application {
                 "-fx-padding: 15;"
             );
 
+            card.setOnMouseEntered(e -> {
+
+                card.setScaleX(1.02);
+                card.setScaleY(1.02);
+
+                card.setStyle(
+                    "-fx-background-color: #4a6268;" +
+                    "-fx-background-radius: 18;" +
+                    "-fx-padding: 15;"
+                );
+            });
+
+            card.setOnMouseExited(e -> {
+
+                card.setScaleX(1);
+                card.setScaleY(1);
+
+                card.setStyle(
+                    "-fx-background-color: #3f545a;" +
+                    "-fx-background-radius: 18;" +
+                    "-fx-padding: 15;"
+                );
+            });
+
             Label service = new Label(item.service);
             service.setStyle(
                 "-fx-text-fill: white;" +
@@ -790,16 +817,33 @@ public class Main extends Application {
             HBox passwordRow = new HBox(10, password, reveal, copy);
             HBox actions = new HBox(10, edit, del);
 
-            Region iconPlaceholder = new Region();
+           String iconPath =
+                "assets/icons/" +
+                item.service.toLowerCase() +
+                "-icon.png";
 
-            iconPlaceholder.setPrefSize(36, 36);
+            ImageView iconView;
 
-            iconPlaceholder.setStyle(
-                "-fx-background-color: #556b70;" +
-                "-fx-background-radius: 18;"
-            );
+            File iconFile = new File(iconPath);
 
-            HBox header = new HBox(10, iconPlaceholder, service);
+            if (iconFile.exists()) {
+
+                Image image = new Image(iconFile.toURI().toString());
+
+                iconView = new ImageView(image);
+
+                iconView.setFitWidth(36);
+                iconView.setFitHeight(36);
+
+            } else {
+
+                iconView = new ImageView();
+
+                iconView.setFitWidth(36);
+                iconView.setFitHeight(36);
+            }
+
+            HBox header = new HBox(10, iconView, service);
 
             card.getChildren().addAll(
                 header,
