@@ -27,6 +27,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import java.io.File;
+import java.security.SecureRandom;
 
 class PasswordItem {
     String service;
@@ -498,6 +499,7 @@ public class Main extends Application {
 
         // ===== ADD BUTTON =====
         Button addBtn = new Button("+ Add Password");
+        Button generatorBtn = new Button("🔑 Generator");
 
         addBtn.setStyle(
             "-fx-background-color: transparent;" +
@@ -506,6 +508,142 @@ public class Main extends Application {
             "-fx-background-radius: 12;" +
             "-fx-text-fill: white;"
         );
+
+        generatorBtn.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-border-color: #67d5ff;" +
+            "-fx-border-radius: 12;" +
+            "-fx-background-radius: 12;" +
+            "-fx-text-fill: white;"
+        );
+
+        generatorBtn.setOnAction(e -> {
+
+            Stage popup = new Stage();
+
+            VBox box = new VBox(10);
+            box.setPadding(new Insets(15));
+
+            Label generatorTitle = new Label("Password Generator");
+            generatorTitle.setStyle(
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 20px;" +
+                "-fx-font-weight: bold;"
+            );
+
+            ComboBox<Integer> lengthBox = new ComboBox<>();
+
+            lengthBox.getItems().addAll(
+                8, 12, 16, 20, 24, 32
+            );
+
+            lengthBox.setValue(20);
+
+            CheckBox upperBox = new CheckBox("Uppercase");
+            upperBox.setSelected(true);
+
+            CheckBox lowerBox = new CheckBox("Lowercase");
+            lowerBox.setSelected(true);
+
+            CheckBox numberBox = new CheckBox("Numbers");
+            numberBox.setSelected(true);
+
+            CheckBox symbolBox = new CheckBox("Symbols");
+            symbolBox.setSelected(true);
+
+            TextField excludeField = new TextField();
+            excludeField.setPromptText("Excluded characters");
+
+            TextField resultField = new TextField();
+            resultField.setEditable(false);
+
+            Label strengthLabel = new Label("Strength: Unknown");
+            Button generate = new Button("Generate");
+            Button copy = new Button("Copy");
+            Button close = new Button("Close");
+
+            String buttonStyle =
+                "-fx-background-color: transparent;" +
+                "-fx-border-color: #67d5ff;" +
+                "-fx-border-radius: 12;" +
+                "-fx-background-radius: 12;" +
+                "-fx-text-fill: white;";
+            
+            generate.setStyle(buttonStyle);
+            copy.setStyle(buttonStyle);
+            close.setStyle(buttonStyle);
+
+            copy.setOnAction(ev -> {
+            
+                Clipboard clipboard = Clipboard.getSystemClipboard();
+            
+                ClipboardContent content = new ClipboardContent();
+            
+                content.putString(resultField.getText());
+            
+                clipboard.setContent(content);
+            });
+            
+            generate.setOnAction(ev -> {
+            
+                String password = generatePassword(
+                    lengthBox.getValue(),
+                    upperBox.isSelected(),
+                    lowerBox.isSelected(),
+                    numberBox.isSelected(),
+                    symbolBox.isSelected(),
+                    excludeField.getText()
+                );
+            
+                resultField.setText(password);
+            
+                if (password.length() >= 20) {
+                    strengthLabel.setText("Strength: Very Strong");
+                } else if (password.length() >= 16) {
+                    strengthLabel.setText("Strength: Strong");
+                } else if (password.length() >= 12) {
+                    strengthLabel.setText("Strength: Medium");
+                } else {
+                    strengthLabel.setText("Strength: Weak");
+                }
+            });
+
+            close.setOnAction(ev -> popup.close());
+
+            HBox buttonRow = new HBox(10);
+            
+            buttonRow.getChildren().addAll(
+                generate,
+                copy,
+                close
+            );
+
+            box.getChildren().addAll(
+                generatorTitle,
+
+                new Label("Length"),
+                lengthBox,
+
+                upperBox,
+                lowerBox,
+                numberBox,
+                symbolBox,
+
+                new Label("Exclude"),
+                excludeField,
+
+                strengthLabel,
+
+                new Label("Generated Password"),
+                resultField,
+
+                buttonRow
+            );
+
+            popup.setScene(new Scene(box, 450, 500));
+            popup.setTitle("Password Generator");
+            popup.show();
+        });
 
         // ===== PASSWORD LIST =====
         ScrollPane scrollPane = new ScrollPane(cardsContainer);
@@ -524,6 +662,9 @@ public class Main extends Application {
 
             VBox box = new VBox(10);
             box.setPadding(new Insets(15));
+            box.setStyle(
+                "-fx-background-color: #30444a;"
+            );
 
             TextField serviceField = new TextField();
             serviceField.setPromptText("Service");
@@ -532,6 +673,10 @@ public class Main extends Application {
             userField.setPromptText("Username");
 
             PasswordField passField = new PasswordField();
+            Button generate = new Button("Generate");
+            generate.setOnAction(ev -> {
+                passField.setText(generatePassword());
+            });
             passField.setPromptText("Password");
 
             Button save = new Button("Save");
@@ -553,6 +698,7 @@ public class Main extends Application {
                 serviceField,
                 userField,
                 passField,
+                generate,
                 save
             );
 
@@ -561,10 +707,12 @@ public class Main extends Application {
         });
 
         // ===== BUILD VAULT =====
+        HBox buttonRow = new HBox(10);
+        buttonRow.getChildren().addAll(addBtn, generatorBtn);
         vaultRoot.getChildren().addAll(
             vaultTitle,
             searchField,
-            addBtn,
+            buttonRow,
             scrollPane
         );
 
@@ -858,5 +1006,73 @@ public class Main extends Application {
 
             cardsContainer.add(card, col, row);
         }
+    }
+
+    private String generatePassword() {
+
+        String chars =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+            "abcdefghijklmnopqrstuvwxyz" +
+            "0123456789" +
+            "!@#$%^&*";
+
+        SecureRandom random = new SecureRandom();
+
+        StringBuilder password = new StringBuilder();
+
+        for (int i = 0; i < 16; i++) {
+            password.append(
+                chars.charAt(
+                    random.nextInt(chars.length())
+                )
+            );
+        }
+
+        return password.toString();
+    }
+
+    private String generatePassword(
+            int length,
+            boolean upper,
+            boolean lower,
+            boolean numbers,
+            boolean symbols,
+            String excluded) {
+    
+        String chars = "";
+    
+        if (upper)
+            chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    
+        if (lower)
+            chars += "abcdefghijklmnopqrstuvwxyz";
+    
+        if (numbers)
+            chars += "0123456789";
+    
+        if (symbols)
+            chars += "!@#$%^&*";
+    
+        for (char c : excluded.toCharArray()) {
+            chars = chars.replace(String.valueOf(c), "");
+        }
+    
+        if (chars.isEmpty()) {
+            return "";
+        }
+    
+        SecureRandom random = new SecureRandom();
+    
+        StringBuilder password = new StringBuilder();
+    
+        for (int i = 0; i < length; i++) {
+            password.append(
+                chars.charAt(
+                    random.nextInt(chars.length())
+                )
+            );
+        }
+    
+        return password.toString();
     }
 }
