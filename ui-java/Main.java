@@ -927,7 +927,16 @@ public class Main extends Application {
     void renderCards(String filter) {
         cardsContainer.getChildren().clear();
 
-        for (PasswordItem item : vault.getAll()) {
+        List<PasswordItem> items = vault.getAll();
+
+        items.sort((a, b) -> {
+            if (a.favorite == b.favorite) {
+                return a.service.compareToIgnoreCase(b.service);
+            }
+            return a.favorite ? -1 : 1;
+        });
+
+        for (PasswordItem item : items) { 
 
             if (!item.service.toLowerCase().contains(filter.toLowerCase())
                     && !item.username.toLowerCase().contains(filter.toLowerCase())) {
@@ -990,6 +999,16 @@ public class Main extends Application {
             Button reveal = new Button("👁");
             Button favorite = new Button(item.favorite ? "⭐" : "☆");
 
+            favorite.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-font-size: 18px;" +
+                "-fx-padding: 0;" +
+                "-fx-cursor: hand;" +
+                (item.favorite
+                    ? "-fx-text-fill: gold;"
+                    : "-fx-text-fill: #b0bec5;")
+            );
+
             reveal.setStyle(
                 "-fx-background-color: transparent;" +
                 "-fx-text-fill: #b0bec5;"
@@ -1030,6 +1049,30 @@ public class Main extends Application {
                     "-fx-border-radius: 10;" +
                     "-fx-background-radius: 10;" +
                     "-fx-text-fill: #20343a;"
+                )
+            );
+
+            favorite.setOnMouseEntered(e ->
+                favorite.setStyle(
+                    "-fx-background-color: transparent;" +
+                    "-fx-font-size: 20px;" +
+                    "-fx-padding: 0;" +
+                    "-fx-cursor: hand;" +
+                    (item.favorite
+                        ? "-fx-text-fill: gold;"
+                        : "-fx-text-fill: white;")
+                )
+            );
+
+            favorite.setOnMouseExited(e ->
+                favorite.setStyle(
+                    "-fx-background-color: transparent;" +
+                    "-fx-font-size: 18px;" +
+                    "-fx-padding: 0;" +
+                    "-fx-cursor: hand;" +
+                    (item.favorite
+                        ? "-fx-text-fill: gold;"
+                        : "-fx-text-fill: #b0bec5;")
                 )
             );
 
@@ -1164,7 +1207,7 @@ public class Main extends Application {
 
             HBox header = new HBox(
                 10,
-                iconPlaceholder,
+                iconView,
                 service,
                 spacer,
                 favorite
