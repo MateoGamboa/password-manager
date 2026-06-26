@@ -34,12 +34,14 @@ class PasswordItem {
     String username;
     String password;
     int id;
+    boolean favorite;
 
-    PasswordItem(String service, String username, String password, int id) {
+    PasswordItem(String service, String username, String password, int id, boolean favorite) {
         this.service = service;
         this.username = username;
         this.password = password;
         this.id = id;
+        this.favorite = favorite;
     }
 }
 
@@ -55,13 +57,20 @@ class VaultManager {
             conn = DriverManager.getConnection("jdbc:sqlite:vault.db");
 
             Statement stmt = conn.createStatement();
+
             stmt.execute(
                 "CREATE TABLE IF NOT EXISTS passwords (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "service TEXT," +
                 "username TEXT," +
-                "password TEXT)"
+                "password TEXT," +
+                "favorite INTEGER DEFAULT 0)"
             );
+
+            try {
+                stmt.execute("ALTER TABLE passwords ADD COLUMN favorite INTEGER DEFAULT 0");
+            } catch (SQLException ignored) {
+            }
 
             stmt.execute(
                 "CREATE TABLE IF NOT EXISTS master (" +
@@ -110,6 +119,21 @@ class VaultManager {
             );
             ps.setString(1, hash(password));
             ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void updateMasterPassword(String password) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(
+                "UPDATE master SET password_hash=?"
+            );
+
+            ps.setString(1, hash(password));
+
+            ps.executeUpdate();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -182,11 +206,13 @@ class VaultManager {
             System.out.println("INSERTING: " + service);
 
             PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO passwords(service, username, password) VALUES (?, ?, ?)"
+                "INSERT INTO passwords(service, username, password, favorite) VALUES (?, ?, ?, ?)"
             );
+
             ps.setString(1, service);
             ps.setString(2, username);
             ps.setString(3, encrypt(password));
+            ps.setInt(4, 0);
             ps.executeUpdate();
         } catch (Exception e) {
             e.printStackTrace();
@@ -221,6 +247,22 @@ class VaultManager {
         }
     }
 
+    void setFavorite(int id, boolean favorite) {
+        try {
+            PreparedStatement ps = conn.prepareStatement(
+                "UPDATE passwords SET favorite=? WHERE id=?"
+            );
+
+            ps.setInt(1, favorite ? 1 : 0);
+            ps.setInt(2, id);
+
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     List<PasswordItem> getAll() {
         List<PasswordItem> list = new ArrayList<>();
 
@@ -234,10 +276,11 @@ class VaultManager {
                 System.out.println("FOUND: " + rs.getString("service"));
 
                 list.add(new PasswordItem(
-                        rs.getString("service"),
-                        rs.getString("username"),
-                        decrypt(rs.getString("password")),
-                        rs.getInt("id")
+                    rs.getString("service"),
+                    rs.getString("username"),
+                    decrypt(rs.getString("password")),
+                    rs.getInt("id"),
+                    rs.getInt("favorite") == 1
                 ));
             }
 
@@ -500,6 +543,7 @@ public class Main extends Application {
         // ===== ADD BUTTON =====
         Button addBtn = new Button("+ Add Password");
         Button generatorBtn = new Button("🔑 Generator");
+        Button changePasswordBtn = new Button("🔒 Change Password");
 
         addBtn.setStyle(
             "-fx-background-color: transparent;" +
@@ -517,12 +561,84 @@ public class Main extends Application {
             "-fx-text-fill: white;"
         );
 
+        changePasswordBtn.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-border-color: #67d5ff;" +
+            "-fx-border-radius: 12;" +
+            "-fx-background-radius: 12;" +
+            "-fx-text-fill: white;"
+        );
+
+        changePasswordBtn.setOnAction(e -> {
+        
+            Stage popup = new Stage();
+        
+            VBox box = new VBox(10);
+            box.setPadding(new Insets(15));
+        
+            TextField currentField = new TextField();
+            currentField.setPromptText("Current Password");
+        
+            TextField newField = new TextField();
+            newField.setPromptText("New Password");
+        
+            TextField confirmField = new TextField();
+            confirmField.setPromptText("Confirm New Password");
+        
+            Label message = new Label();
+        
+            Button changeBtn = new Button("Change Password");
+
+            changeBtn.setOnAction(ev -> {
+            
+                if (!vault.verifyMasterPassword(currentField.getText())) {
+                    message.setText("Current password incorrect");
+                    return;
+                }
+            
+                if (!newField.getText().equals(confirmField.getText())) {
+                    message.setText("Passwords do not match");
+                    return;
+                }
+            
+                List<PasswordItem> items = vault.getAll();
+
+                vault.setKey(newField.getText());
+
+                for (PasswordItem item : items) {
+                    vault.update(
+                        item.id,
+                        item.service,
+                        item.username,
+                        item.password
+                    );
+                }
+
+                vault.updateMasterPassword(newField.getText());
+
+                message.setText("Master password changed");
+            });
+        
+            box.getChildren().addAll(
+                currentField,
+                newField,
+                confirmField,
+                changeBtn,
+                message
+            );
+        
+            popup.setScene(new Scene(box, 400, 250));
+            popup.setTitle("Change Master Password");
+            popup.show();
+        });
+
         generatorBtn.setOnAction(e -> {
 
             Stage popup = new Stage();
 
             VBox box = new VBox(10);
             box.setPadding(new Insets(15));
+            box.setStyle("-fx-background-color: #30444a;");
 
             Label generatorTitle = new Label("Password Generator");
             generatorTitle.setStyle(
@@ -539,6 +655,11 @@ public class Main extends Application {
 
             lengthBox.setValue(20);
 
+            lengthBox.setStyle(
+                "-fx-background-color: #3a4f55;" +
+                "-fx-text-fill: white;"
+            );
+
             CheckBox upperBox = new CheckBox("Uppercase");
             upperBox.setSelected(true);
 
@@ -550,14 +671,28 @@ public class Main extends Application {
 
             CheckBox symbolBox = new CheckBox("Symbols");
             symbolBox.setSelected(true);
+            upperBox.setStyle("-fx-text-fill: white;");
+            lowerBox.setStyle("-fx-text-fill: white;");
+            numberBox.setStyle("-fx-text-fill: white;");
+            symbolBox.setStyle("-fx-text-fill: white;");
 
             TextField excludeField = new TextField();
             excludeField.setPromptText("Excluded characters");
+            excludeField.setStyle(
+                "-fx-background-color: #3a4f55;" +
+                "-fx-text-fill: white;" +
+                "-fx-prompt-text-fill: #b0bec5;"
+            );
 
             TextField resultField = new TextField();
             resultField.setEditable(false);
+            resultField.setStyle(
+                "-fx-background-color: #3a4f55;" +
+                "-fx-text-fill: #67d5ff;"
+            );
 
             Label strengthLabel = new Label("Strength: Unknown");
+            strengthLabel.setStyle("-fx-text-fill: white;");
             Button generate = new Button("Generate");
             Button copy = new Button("Copy");
             Button close = new Button("Close");
@@ -618,10 +753,19 @@ public class Main extends Application {
                 close
             );
 
+            Label lengthLabel = new Label("Length");
+            lengthLabel.setStyle("-fx-text-fill: white;");
+
+            Label excludeLabel = new Label("Exclude");
+            excludeLabel.setStyle("-fx-text-fill: white;");
+
+            Label passwordLabel = new Label("Generated Password");
+            passwordLabel.setStyle("-fx-text-fill: white;");
+
             box.getChildren().addAll(
                 generatorTitle,
 
-                new Label("Length"),
+                lengthLabel,
                 lengthBox,
 
                 upperBox,
@@ -629,12 +773,12 @@ public class Main extends Application {
                 numberBox,
                 symbolBox,
 
-                new Label("Exclude"),
+                excludeLabel,
                 excludeField,
 
                 strengthLabel,
 
-                new Label("Generated Password"),
+                passwordLabel,
                 resultField,
 
                 buttonRow
@@ -708,7 +852,12 @@ public class Main extends Application {
 
         // ===== BUILD VAULT =====
         HBox buttonRow = new HBox(10);
-        buttonRow.getChildren().addAll(addBtn, generatorBtn);
+        buttonRow.getChildren().addAll(
+            addBtn,
+            generatorBtn,
+            changePasswordBtn
+        );
+
         vaultRoot.getChildren().addAll(
             vaultTitle,
             searchField,
@@ -839,6 +988,7 @@ public class Main extends Application {
             Button del = new Button("Delete");
             Button copy = new Button("📋");
             Button reveal = new Button("👁");
+            Button favorite = new Button(item.favorite ? "⭐" : "☆");
 
             reveal.setStyle(
                 "-fx-background-color: transparent;" +
@@ -865,6 +1015,13 @@ public class Main extends Application {
                 "-fx-background-radius: 10;" +
                 "-fx-text-fill: white;"
             );
+
+            favorite.setOnAction(e -> {
+
+                vault.setFavorite(item.id, !item.favorite);
+
+                renderCards(searchField.getText());
+            });
 
             edit.setOnMouseEntered(e ->
                 edit.setStyle(
@@ -907,8 +1064,19 @@ public class Main extends Application {
             );
 
             del.setOnAction(e -> {
-                vault.delete(item.id);
-                renderCards(searchField.getText());
+
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+
+                alert.setTitle("Delete Password");
+                alert.setHeaderText("Delete " + item.service + "?");
+                alert.setContentText("This cannot be undone.");
+
+                Optional<ButtonType> result = alert.showAndWait();
+
+                if (result.isPresent() && result.get() == ButtonType.OK) {
+                    vault.delete(item.id);
+                    renderCards(searchField.getText());
+                }
             });
 
             edit.setOnAction(e -> {
@@ -991,7 +1159,16 @@ public class Main extends Application {
                 iconView.setFitHeight(36);
             }
 
-            HBox header = new HBox(10, iconView, service);
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            HBox header = new HBox(
+                10,
+                iconPlaceholder,
+                service,
+                spacer,
+                favorite
+            );
 
             card.getChildren().addAll(
                 header,
